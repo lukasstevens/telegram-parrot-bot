@@ -2,6 +2,8 @@
 
 import configparser
 from telegram.ext import Updater, CommandHandler
+from sqlalchemy import create_engine
+from db import BotDatabase
 import logging
 import parrotbot
 
@@ -17,10 +19,14 @@ def main():
     updater = Updater(token=api_key)
     dispatcher = updater.dispatcher
 
+    database = BotDatabase()
+    database.connect('sqlite', '/db.sqlite3')
+
     dispatcher.add_handler(CommandHandler('start', parrotbot.start))
     dispatcher.add_handler(CommandHandler('parrot', parrotbot.parrot, pass_args=True))
 
     updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
     main()
