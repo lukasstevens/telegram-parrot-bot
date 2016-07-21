@@ -1,2 +1,4 @@
 api_key.ini
 __pycache__/
+*-journal
+*.sqlite3
