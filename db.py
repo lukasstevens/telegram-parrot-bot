@@ -12,16 +12,27 @@ class BotDatabase:
         self.session = DBSession()
         self.session.commit()
 
-    def add_group(self, group_id, title):
-        group = Entity(id=group_id, title=title, is_group=True)
-        self.session.add(group)
+    def disconnect(self):
+        self.session.close()
+
+    def add_message(self, message):
+        self.session.add(message)
         self.session.commit()
 
-    def add_user(self, user_id, username, first_name, last_name=None):
-        user = Entity(id=user_id, is_group=False, first_name=first_name, last_name=last_name, username=username)
-        self.session.add(user)
+    def add_entity(self, entity):
+        self.session.merge(entity)
         self.session.commit()
 
+    def get_entities(self, predicate):
+        return self.session.query(Entity).filter(predicate).all()
 
+    def get_entity(self, predicate):
+        return self.session.query(Entity).filter(predicate).one_or_none()
+
+    def get_messages(self, predicate):
+        return self.session.query(Message).filter(predicate).all()
+
+    def get_message(self, predicate):
+        return self.session.query(Message).filter(predicate).one_or_none()
 
 

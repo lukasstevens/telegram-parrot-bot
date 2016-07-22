@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import configparser
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler
+from telegram.ext.messagehandler import Filters
 from sqlalchemy import create_engine
 from db import BotDatabase
 import logging
-import parrotbot
+from parrotbot import ParrotBot
 
 def main():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -22,8 +23,11 @@ def main():
     database = BotDatabase()
     database.connect('sqlite', '/db.sqlite3')
 
-    dispatcher.add_handler(CommandHandler('start', parrotbot.start))
-    dispatcher.add_handler(CommandHandler('parrot', parrotbot.parrot, pass_args=True))
+    bot = ParrotBot(database)
+
+    dispatcher.add_handler(CommandHandler('start', bot.start))
+    dispatcher.add_handler(CommandHandler('parrot', bot.parrot, pass_args=True))
+    dispatcher.add_handler(MessageHandler([Filters.text], bot.new_message))
 
     updater.start_polling()
     updater.idle()
