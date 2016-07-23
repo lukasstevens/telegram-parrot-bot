@@ -1,14 +1,19 @@
+import logging
 from model import Message, Entity
+from sqlalchemy import func
 
 class ParrotBot:
     def __init__(self, bot_database):
         self._bot_database = bot_database
 
     def start(self, bot, update):
-        bot.sendMessage(chat_id=update.message.chat_id, text="Hello there.")
+        bot.sendMessage(chat_id=update.message.chat_id, text="Hello")
 
     def parrot(self, bot, update, args):
-        bot.sendMessage(chat_id=update.message.chat_id, text=args)
+        user = self._bot_database.get_entities().filter(Entity.username == args[0]).one_or_none()
+        message = self._bot_database.get_messages().filter(Message.from_id == user.id).order_by(Message.date.desc()).first()
+        if message is not None:
+            bot.sendMessage(chat_id=update.message.chat_id, text=message.text)
 
     def new_message(self, bot, update):
         up_msg = update.message
