@@ -28,6 +28,8 @@ def main():
     dispatcher.add_handler(CommandHandler('start', bot.start))
     dispatcher.add_handler(CommandHandler('parrot', bot.parrot, pass_args=True))
     dispatcher.add_handler(MessageHandler([Filters.text], bot.new_message))
+    dispatcher.add_handler(CommandHandler('forget', bot.forget))
+    dispatcher.add_handler(CommandHandler('set_tracking', bot.set_tracking, pass_args=True))
 
     updater.start_polling()
     updater.idle()

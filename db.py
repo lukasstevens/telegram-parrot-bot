@@ -31,3 +31,12 @@ class BotDatabase:
             return self.session.query(Message, query)
         else:
             return self.session.query(Message)
+
+    def delete_messages(self, predicate):
+        messages = self.session.query(Message).filter(predicate).all()
+        for message in messages:
+            self.session.delete(message)
+        self.session.commit()
+
+    def __del__(self):
+        self.session.close()

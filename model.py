@@ -19,3 +19,4 @@ class Entity(Base):
      first_name = Column(String(255), nullable=True)
      last_name = Column(String(255), nullable=True)
      title = Column(String(255), nullable=True)
+     is_being_tracked = Column(Boolean, default=True, nullable=False)
