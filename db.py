@@ -1,11 +1,13 @@
-from model import Base, Entity, Message
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from model import Base, Entity, Message
 
 class BotDatabase:
 
     def connect(self, driver, database):
         self.engine = create_engine(driver + '://' + database)
+        # Create only if not exists
         Base.metadata.create_all(self.engine, checkfirst=True)
         Base.metadata.bind = self.engine
         DBSession = sessionmaker(bind=self.engine)
@@ -17,6 +19,7 @@ class BotDatabase:
         self.session.commit()
 
     def add_entity(self, entity):
+        # Columns which have changed are updated
         self.session.merge(entity)
         self.session.commit()
 
