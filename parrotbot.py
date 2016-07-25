@@ -1,6 +1,7 @@
+import itertools
 import logging
 import re
-from random import randint
+from random import choice
 from sqlalchemy import func, and_
 
 from model import Message, Entity
@@ -18,12 +19,21 @@ class ParrotBot:
         # Check if user has send a message yet
         if len(messages) > 0:
             chain = {}
+
             def get_text(message): return message.text
-            def split_sentence(string): return re.split('[\s+,.!?]', string)
+            def split_sentence(string): return re.split('(\?|!|\.|,)', string.split())
             def not_empty(string_list): return len(string_list) != 0
             sentences = list(filter(not_empty, map(split_sentence, map(get_text, messages))))
+
             for sentence in sentences:
+                def append_none(string):
+                    if re.match('[\?\.!]', string) is not None:
+                        return [string, None]
+                    else:
+                        return [string]
+                sentence = list(itertools.chain.from_iterable(map(append_none, sentence)))
                 sentence.append(None)
+
             def first_word(string_list): return string_list[0]
             first_words = list(map(first_word, sentences))
 
@@ -36,13 +46,20 @@ class ParrotBot:
                         chain[last_word] = [word]
                     last_word = word
 
-            curr_word = first_words[randint(0, len(first_words)-1)]
+            curr_word = choice(first_words)
             message = curr_word
-            while curr_word is not None:
+            building_message = True
+            while building_message:
                 next_word_list = chain[curr_word]
-                next_word = next_word_list[randint(0, len(next_word_list)-1)]
+                next_word = choice(next_word_list)
                 if next_word is None:
-                    message += '.'
+                    # 50/50 chance that message is finished after a terminating symbol (?,!,.)
+                    if choice([True, False]):
+                        # Begin new sentence
+                        next_word = choice(first_words)
+                    else:
+                        # Finished with building message
+                        building_message
                 else:
                     message += ' ' + next_word
                 curr_word = next_word
