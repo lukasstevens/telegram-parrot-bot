@@ -27,7 +27,6 @@ def main():
 
     bot = ParrotBot(database)
 
-    dispatcher.add_handler(CommandHandler('start', bot.start))
     dispatcher.add_handler(CommandHandler('parrot', bot.parrot, pass_args=True))
     # Only handle text messages, no media content
     dispatcher.add_handler(MessageHandler([Filters.text], bot.new_message))

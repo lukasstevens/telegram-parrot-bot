@@ -1,5 +1,7 @@
 import logging
-from sqlalchemy import func
+import re
+from random import randint
+from sqlalchemy import func, and_
 
 from model import Message, Entity
 
@@ -7,17 +9,45 @@ class ParrotBot:
     def __init__(self, bot_database):
         self._bot_database = bot_database
 
-    def start(self, bot, update):
-        bot.sendMessage(chat_id=update.message.chat_id, text="Hello")
-
     def parrot(self, bot, update, args):
         # Since the user id is unique there can be only one user
         user = self._bot_database.get_entities().filter(Entity.username == args[0]).one()
-        # Get last message from this user
-        message = self._bot_database.get_messages().filter(Message.from_id == user.id).order_by(Message.date.desc()).first( )
+        # Get messages from this user in this chat
+        messages = self._bot_database.get_messages().\
+                filter(and_(Message.from_id == user.id, Message.to_id == update.message.chat.id)).all()
         # Check if user has send a message yet
-        if message is not None:
-            bot.sendMessage(chat_id=update.message.chat_id, text=message.text)
+        if len(messages) > 0:
+            chain = {}
+            def get_text(message): return message.text
+            def split_sentence(string): return re.split('[\s+,.!?]', string)
+            def not_empty(string_list): return len(string_list) != 0
+            sentences = list(filter(not_empty, map(split_sentence, map(get_text, messages))))
+            for sentence in sentences:
+                sentence.append(None)
+            def first_word(string_list): return string_list[0]
+            first_words = list(map(first_word, sentences))
+
+            for sentence in sentences:
+                last_word = None
+                for word in sentence:
+                    try:
+                        chain[last_word].append(word)
+                    except KeyError:
+                        chain[last_word] = [word]
+                    last_word = word
+
+            curr_word = first_words[randint(0, len(first_words)-1)]
+            message = curr_word
+            while curr_word is not None:
+                next_word_list = chain[curr_word]
+                next_word = next_word_list[randint(0, len(next_word_list)-1)]
+                if next_word is None:
+                    message += '.'
+                else:
+                    message += ' ' + next_word
+                curr_word = next_word
+            bot.sendMessage(chat_id=update.message.chat_id, text=message)
+
 
     def forget(self, bot, update):
         user_id = update.message.from_user.id
