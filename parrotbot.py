@@ -22,10 +22,11 @@ class ParrotBot:
 
             def get_text(message): return message.text
             def split_sentence(string): return re.split('(\?|!|\.|,)', string)
+            def strip(string_list): return list(map(str.split, string_list))
             def not_empty(string_list): return len(string_list) != 0
             messages_text = map(get_text, messages)
             # Split around terminators then, strip the strings and remove empty lists
-            sentences = list(filter(not_empty, map(str.strip, map(split_sentence, messages_text))))
+            sentences = list(filter(not_empty, map(strip, map(split_sentence, messages_text))))
 
             for sentence in sentences:
                 def append_none(string):
