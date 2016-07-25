@@ -14,46 +14,53 @@ class ParrotBot:
         # Since the user id is unique there can be only one user
         user = self._bot_database.get_entities().filter(Entity.username == args[0]).one()
         # Get messages from this user in this chat
-        messages = self._bot_database.get_messages().\
+        message_objects = self._bot_database.get_messages().\
                 filter(and_(Message.from_id == user.id, Message.to_id == update.message.chat.id)).all()
         # Check if user has send a message yet
-        if len(messages) > 0:
-            chain = {}
+        if len(message_objects) > 0:
+            markov_chain = {}
 
-            def get_text(message): return message.text
-            def split_sentence(string): return re.split('(\?|!|\.|,)', string)
-            def strip(string_list): return list(map(str.split, string_list))
-            def not_empty(string_list): return len(string_list) != 0
-            messages_text = map(get_text, messages)
-            # Split around terminators then, strip the strings and remove empty lists
-            sentences = list(filter(not_empty, map(strip, map(split_sentence, messages_text))))
+            def flat_map(f, items):
+                return itertools.chain.from_iterable(map(f, items))
+            def get_text(message_object): return message_object.text
+            def split_around_terminators(string): return re.split('(\?|!|\.|,)', string)
+            def is_not_empty(string): return string != ''
 
-            for sentence in sentences:
-                def append_none(string):
-                    if re.match('[\?\.!]', string) is not None:
-                        return [string, None]
-                    else:
-                        return [string]
-                sentence = list(itertools.chain.from_iterable(map(append_none, sentence)))
-                sentence.append(None)
+            # Get the text from the message objects
+            messages = list(map(get_text, message_objects))
+            # Split whitespaces
+            messages = [message.split() for message in messages]
+            # Split around terminators
+            messages = [list(filter(is_not_empty, flat_map(split_around_terminators, message))) for message in messages]
+            # Add none after each punctuation mark
+            def append_none(string):
+                if re.match('[\?\.!]', string) is not None:
+                    return [string, None]
+                else:
+                    return [string]
+            messages = [list(flat_map(append_none, message)) for message in messages]
+
+            for message in messages:
+                message.append(None)
 
             def first_word(string_list): return string_list[0]
-            first_words = list(map(first_word, sentences))
+            first_words = list(map(first_word, messages))
 
-            for sentence in sentences:
-                last_word = None
-                for word in sentence:
-                    try:
-                        chain[last_word].append(word)
-                    except KeyError:
-                        chain[last_word] = [word]
-                    last_word = word
+            for message in messages:
+                prev_word = None
+                for word in message:
+                    if prev_word is not None:
+                        try:
+                            markov_chain[prev_word].append(word)
+                        except KeyError:
+                            markov_chain[prev_word] = [word]
+                    prev_word = word
 
             curr_word = choice(first_words)
-            message = curr_word
+            bot_message = curr_word
             building_message = True
             while building_message:
-                next_word_list = chain[curr_word]
+                next_word_list = markov_chain[curr_word]
                 next_word = choice(next_word_list)
                 if next_word is None:
                     # 50/50 chance that message is finished after a terminating symbol (?,!,.)
@@ -62,12 +69,11 @@ class ParrotBot:
                         next_word = choice(first_words)
                     else:
                         # Finished with building message
-                        building_message
+                        building_message=False
                 else:
-                    message += ' ' + next_word
+                    bot_message += ' ' + next_word
                 curr_word = next_word
-            bot.sendMessage(chat_id=update.message.chat_id, text=message)
-
+            bot.sendMessage(chat_id=update.message.chat_id, text=bot_message)
 
     def forget(self, bot, update):
         user_id = update.message.from_user.id
