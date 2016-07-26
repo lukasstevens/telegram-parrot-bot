@@ -71,7 +71,10 @@ class ParrotBot:
                         # Finished with building message
                         building_message=False
                 else:
-                    bot_message += ' ' + next_word
+                    if re.match('[\?\.!,]', next_word) is not None:
+                        bot_message += next_word
+                    else:
+                        bot_message += ' ' + next_word
                 curr_word = next_word
             bot.sendMessage(chat_id=update.message.chat_id, text=bot_message)
 
